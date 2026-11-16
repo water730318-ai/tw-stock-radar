@@ -1,13 +1,11 @@
 {
-  "nextDate": "2026-06-29",
+  "nextDate": "2026-07-09",
   "rangeStart": "2026-06-24",
   "rangeEnd": "2026-11-15",
-  "lastAttempt": "2026-11-16T13:08:21+08:00",
+  "lastAttempt": "2026-11-16T13:50:14+08:00",
   "acceptedThisRun": {
-    "上市": 8694,
-    "上櫃": 6134
+    "上市": 8703,
+    "上櫃": 7013
   },
-  "errors": [
-    "2026-06-29 上櫃: HTTP Error 522: <none>"
-  ]
+  "errors": []
 }
