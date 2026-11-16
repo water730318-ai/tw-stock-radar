@@ -31,7 +31,8 @@ def request(url):
                 return json.loads(r.read().decode('utf-8-sig'))
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
             code = getattr(exc, 'code', None)
-            retryable = code is None or code in (408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524)
+            # CDN / TLS handshake issues (525/526) are transient upstream failures.
+            retryable = code is None or code in (408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526)
             if not retryable or attempt == 3:
                 raise
             delay = 5 * (attempt + 1)
