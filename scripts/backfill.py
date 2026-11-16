@@ -10,6 +10,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+import urllib.error
 from update import DATA, standard, score
 
 TZ = dt.timezone(dt.timedelta(hours=8))
@@ -23,8 +24,19 @@ LATEST = DATA / 'latest.json'
 HEADERS = {'User-Agent': 'Mozilla/5.0 TaiwanStockResearch/1.0','Accept':'application/json'}
 
 def request(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS),timeout=35) as r:
-        return json.loads(r.read().decode('utf-8-sig'))
+    for attempt in range(4):
+        try:
+            req = urllib.request.Request(url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=35) as r:
+                return json.loads(r.read().decode('utf-8-sig'))
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+            code = getattr(exc, 'code', None)
+            retryable = code is None or code in (408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524)
+            if not retryable or attempt == 3:
+                raise
+            delay = 5 * (attempt + 1)
+            print(f'Upstream temporary error {exc}; retry {attempt + 1}/3 in {delay}s', file=sys.stderr)
+            time.sleep(delay)
 
 def table(payload):
     if not isinstance(payload,dict): raise ValueError('資料來源不是JSON物件')
