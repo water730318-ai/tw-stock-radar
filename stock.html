@@ -1,19 +1,89 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a1021"><title>個股研究室｜台股雷達</title><style>
-:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;background:#0a1021;color:#edf5ff}*{box-sizing:border-box}body{margin:0}.wrap{max-width:850px;margin:auto;padding:15px 15px 65px}a{color:#8ac7ff;text-decoration:none}header{background:linear-gradient(125deg,#19365a,#0a1021);padding:12px 0 20px}h1{margin:12px 0 5px;font-size:25px}h2{font-size:17px;margin:0 0 13px}.muted,small{color:#9fb2ca}.muted{font-size:13px}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.panel,.metric{background:#132139;border:1px solid #2c405b;border-radius:15px;padding:14px;margin-top:12px}.metric{margin-top:0;padding:12px}.metric .v{font-size:19px;font-weight:700;margin-top:6px}.metric .k{font-size:12px;color:#9fb2ca}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pair{padding:9px 0;border-bottom:1px solid #283950}.pair:last-child{border:0}.tag{border:1px solid #5a7192;border-radius:8px;padding:6px 9px;font-size:12px}.warn{color:#ffd493}select,input,button{font:inherit;background:#1b3150;border:1px solid #436188;border-radius:10px;color:#fff;padding:10px}input{width:120px}button{cursor:pointer}canvas{width:100%;height:260px;display:block}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.chip{font-size:12px}.error{color:#ffb2b2}footer{font-size:12px;color:#91a4ba;line-height:1.7;margin-top:20px}@media(max-width:370px){.metric .v{font-size:16px}}
-</style></head><body><header><div class="wrap"><a href="./">‹ 返回股票雷達首頁</a><div class="row"><div><h1 id="heading">個股專屬研究室</h1><div id="sub" class="muted">讀取資料中…</div></div><span id="badge" class="tag">資料確認中</span></div><div class="chips"><input id="ticker" inputmode="numeric" maxlength="4" placeholder="輸入代碼"><button id="go">查詢股票</button><button id="refresh">重新整理</button></div></div></header><main class="wrap"><div id="message" class="muted" role="status"></div><section class="cards"><div class="metric"><div class="k">最新收盤</div><div id="price" class="v">—</div></div><div class="metric"><div class="k">條件分數</div><div id="score" class="v">—</div></div><div class="metric"><div class="k">歷史交易日</div><div id="days" class="v">—</div></div></section><section class="panel"><h2>歷史收盤走勢與均線</h2><canvas id="chart" aria-label="收盤價與移動平均走勢圖"></canvas><div class="chips"><small>藍色：收盤價</small><small>橘色：MA20</small><small>綠色：MA60</small></div><p id="chartNote" class="muted"></p></section><section class="panel"><h2>趨勢與動能</h2><div id="tech"></div></section><section class="panel"><h2>支撐、壓力與交易計畫</h2><div id="levels"></div><p class="muted">參考價為歷史價格的機械化計算，不是買進指令；資料不足、價格異常時一律不產生交易建議。</p></section><section class="panel"><h2>分析結論</h2><div id="conclusion" class="warn">等待資料驗證。</div></section><footer>來源：股票雷達專案 data/history.json 與 data/latest.json，官方盤後資料；非盤中即時行情。歷史價格可能未還原因除權息、減資或其他事件而出現跳空，且目前未加入三大法人籌碼或策略回測。條件分數不是勝率。交易前請向券商核對資料與價格。</footer></main><script>
-const $=x=>document.getElementById(x), fmt=x=>Number.isFinite(x)?x.toLocaleString('zh-TW',{maximumFractionDigits:2}):'—';
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;background:#0a1021;color:#edf5ff}*{box-sizing:border-box}body{margin:0}.wrap{max-width:850px;margin:auto;padding:15px 15px 65px}a{color:#8ac7ff;text-decoration:none}header{background:linear-gradient(125deg,#19365a,#0a1021);padding:12px 0 20px}h1{margin:12px 0 5px;font-size:25px}h2{font-size:17px;margin:0 0 13px}.muted,small{color:#9fb2ca}.muted{font-size:13px}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.panel,.metric{background:#132139;border:1px solid #2c405b;border-radius:15px;padding:14px;margin-top:12px}.metric{margin-top:0;padding:12px}.metric .v{font-size:19px;font-weight:700;margin-top:6px}.metric .k{font-size:12px;color:#9fb2ca}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pair{padding:9px 0;border-bottom:1px solid #283950}.pair:last-child{border:0}.tag{border:1px solid #5a7192;border-radius:8px;padding:6px 9px;font-size:12px}.warn{color:#ffd493}.good{color:#75d6ad}.bad{color:#ff9da2}select,input,button{font:inherit;background:#1b3150;border:1px solid #436188;border-radius:10px;color:#fff;padding:10px}input{width:120px}button{cursor:pointer}canvas{width:100%;height:260px;display:block}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.error{color:#ffb2b2}footer{font-size:12px;color:#91a4ba;line-height:1.7;margin-top:20px}.levelgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.levelbox{background:#101c30;border:1px solid #2c405b;border-radius:11px;padding:11px}.levelbox strong{display:block;font-size:21px;margin:5px 0}.levelbox small{display:block;line-height:1.6}.note{font-size:12px;color:#a6bbd0;line-height:1.8}.levelhead{font-weight:700;margin:15px 0 10px}.quality{padding:10px;border-radius:9px;background:#342c22;color:#ffe0aa;margin:10px 0}.method{font-size:12px;line-height:1.75;color:#a9bfd7}@media(max-width:370px){.metric .v{font-size:16px}.levelgrid{grid-template-columns:1fr}}
+</style></head><body><header><div class="wrap"><a href="./">‹ 返回股票雷達首頁</a><div class="row"><div><h1 id="heading">個股專屬研究室</h1><div id="sub" class="muted">讀取資料中…</div></div><span id="badge" class="tag">資料確認中</span></div><div class="chips"><input id="ticker" inputmode="numeric" maxlength="4" placeholder="輸入代碼"><button id="go">查詢股票</button><button id="refresh">重新整理</button></div></div></header><main class="wrap"><div id="message" class="muted" role="status"></div><section class="cards"><div class="metric"><div class="k">最新收盤</div><div id="price" class="v">—</div></div><div class="metric"><div class="k">條件分數</div><div id="score" class="v">—</div></div><div class="metric"><div class="k">有效歷史日</div><div id="days" class="v">—</div></div></section><section class="panel"><h2>歷史收盤走勢與均線</h2><canvas id="chart" aria-label="收盤價與移動平均走勢圖"></canvas><div class="chips"><small>藍色：收盤價</small><small>橘色：MA20</small><small>綠色：MA60</small></div><p id="chartNote" class="muted"></p></section><section class="panel"><h2>趨勢與動能</h2><div id="tech"></div></section><section class="panel"><h2>三道支撐／三道壓力 v1</h2><div id="levels" aria-live="polite"></div><p class="method">計算方法：只使用分析日以前的歷史最高／最低、MA5／10／20／60與局部波段高低點；相近候選價位合併為觀察區中心。每一價位提供來源，最多三道，找不到不硬補。不是成交密集區模型，也不是勝率。支撐跌破後失效，應重新分析下一道；突破壓力須確認收盤與量價。</p></section><section class="panel"><h2>分析結論</h2><div id="conclusion" class="warn">等待資料驗證。</div></section><footer>來源：專案 data/history.json 與 data/latest.json 的官方盤後資料；非盤中即時行情。尚未完整接入三大法人籌碼、隔日預判或回測。未還原價格可能因除權息、減資等造成跳空。行情日期與個股日K需一致才能使用，交易前須與券商資料核對。條件評分不是勝率。</footer></main><script>
+'use strict';
+const $=id=>document.getElementById(id);
+const fmt=x=>Number.isFinite(x)?x.toLocaleString('zh-TW',{maximumFractionDigits:2}):'—';
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const qs=new URLSearchParams(location.search);let code=qs.get('stock')||qs.get('id')||'2330';
-function pair(k,v){return `<div class="row pair"><span class="muted">${k}</span><strong>${v}</strong></div>`}
+function pair(k,v){return `<div class="row pair"><span class="muted">${esc(k)}</span><strong>${esc(v)}</strong></div>`}
 function ma(rows,n,i){if(i+1<n)return null;return rows.slice(i+1-n,i+1).reduce((s,r)=>s+r.close,0)/n}
-function draw(rows){const c=$('chart'),ctx=c.getContext('2d'),w=c.clientWidth,h=260,dpr=window.devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);if(rows.length<2){$('chartNote').textContent='歷史資料不足，暫不繪製走勢。';return}
-const items=rows.slice(-90),series=[{color:'#7bb9ff',values:items.map(x=>x.close)},{color:'#f6bc6a',values:items.map((x,i)=>ma(items,20,i))},{color:'#57cbac',values:items.map((x,i)=>ma(items,60,i))}];const all=series.flatMap(s=>s.values).filter(Number.isFinite);let lo=Math.min(...all),hi=Math.max(...all);if(lo===hi){lo*=.99;hi*=1.01}const x=i=>20+i*(w-40)/Math.max(1,items.length-1),y=v=>12+(hi-v)*(h-40)/(hi-lo);ctx.strokeStyle='#29405e';ctx.lineWidth=1;for(let i=0;i<4;i++){const yy=12+i*(h-40)/3;ctx.beginPath();ctx.moveTo(20,yy);ctx.lineTo(w-20,yy);ctx.stroke()}for(const s of series){ctx.strokeStyle=s.color;ctx.lineWidth=2;ctx.beginPath();let started=false;s.values.forEach((v,i)=>{if(!Number.isFinite(v)){started=false;return}if(!started){ctx.moveTo(x(i),y(v));started=true}else ctx.lineTo(x(i),y(v))});ctx.stroke()}$('chartNote').textContent=`顯示 ${items.length} 個歷史交易日（${items[0].date} 至 ${items.at(-1).date}），價格可能未還原。`}
-async function load(){code=$('ticker').value.trim()||code;if(!/^\d{4}$/.test(code)){$('message').textContent='請輸入四位股票代碼';return}history.replaceState(null,'','?stock='+code);$('message').textContent='讀取個股歷史與最新行情中…';try{const [a,b]=await Promise.all([fetch('data/latest.json?t='+Date.now(),{cache:'no-store'}),fetch('data/history.json?t='+Date.now(),{cache:'no-store'})]);if(!a.ok||!b.ok)throw Error('GitHub 尚未提供完整資料');const latest=await a.json(),his=await b.json();const matches=Object.values(his.stocks||{}).filter(r=>r.id===code),live=(latest.stocks||[]).filter(r=>r.id===code);const r=matches.find(x=>x.market==='上市')||matches[0],s=live.find(x=>x.market===r?.market)||live[0];if(!r&&!s)throw Error('查無此股票代碼，請確認資料涵蓋範圍');const bars=[...(r?.bars||[])].filter(x=>Number.isFinite(x.close)&&x.close>0).sort((a,b)=>a.date.localeCompare(b.date));const last=bars.at(-1),prev=bars.at(-2);$('heading').textContent=`${s?.name||r.name} ${code}`;$('sub').textContent=`${s?.market||r.market} · 最新資料日：${s?.date||last?.date||'未知'} · 盤後資料`;$('price').textContent=fmt(s?.close??last?.close);$('days').textContent=bars.length+' / 60';$('score').textContent=s?.score==null?'未建立':s.score+'/100';$('badge').textContent=s?.status||'資料檢查中';$('ticker').value=code;
-const close=last?.close, m5=bars.length>=5?ma(bars,5,bars.length-1):null,m10=bars.length>=10?ma(bars,10,bars.length-1):null,m20=bars.length>=20?ma(bars,20,bars.length-1):null,m60=bars.length>=60?ma(bars,60,bars.length-1):null;
-$('tech').innerHTML=pair('MA5 / MA10',fmt(m5)+' / '+fmt(m10))+pair('MA20 / MA60',fmt(m20)+' / '+fmt(m60))+pair('RSI14',fmt(s?.rsi14))+pair('MACD 柱狀值',fmt(s?.macdHist))+pair('量比（近20日）',fmt(s?.volumeRatio));
-let quality='';if(bars.length>1){const ret=(close/prev.close-1)*100;if(Math.abs(ret)>15)quality=`相鄰交易日漲跌 ${fmt(ret)}%，可能有除權息、減資或資料異常，需人工驗證。`;}
-const sufficient=bars.length>=60&&!quality;let high20=null,low20=null;if(bars.length>=21){const sample=bars.slice(-21,-1);high20=Math.max(...sample.map(x=>x.high??x.close));low20=Math.min(...sample.map(x=>x.low??x.close));}
-$('levels').innerHTML=pair('近20日高點（第一壓力參考）',fmt(high20))+pair('近20日低點（第一支撐參考）',fmt(low20))+pair('MA20（動態支撐／壓力）',fmt(m20))+pair('MA60（中期趨勢參考）',fmt(m60))+pair('原系統停損參考',sufficient?fmt(s?.stopReference):'暫停')+pair('原系統 2R 目標',sufficient?fmt(s?.target2R):'暫停');
-$('conclusion').textContent=quality?'資料異常警示：'+quality+'本頁暫停交易結論。':bars.length<60?`資料累積中：目前 ${bars.length}/60 個有效交易日，待補齊後才判斷趨勢及交易條件。`:`資料數量達標；系統標籤「${s?.status||'未評分'}」，仍需核對除權息及真實行情。此頁不提供未回測勝率。`;$('message').textContent='最近系統資料產生時間：'+(latest.generatedAt||'未知');draw(bars);
-}catch(e){$('message').textContent='讀取失敗：'+e.message;$('conclusion').textContent='未取得可靠資料，請稍後重試。'}}
+/* Pure function: levels use past candles only, no fabricated market data. */
+function calculatePriceLevels(input){
+ const rows=(Array.isArray(input)?input:[]).filter(b=>b&&typeof b.date==='string'&&Number.isFinite(b.close)&&b.close>0&&Number.isFinite(b.high)&&Number.isFinite(b.low)&&b.low>0&&b.high>=b.close&&b.close>=b.low).sort((a,b)=>a.date.localeCompare(b.date));
+ const unique=[...new Map(rows.map(b=>[b.date,b])).values()];
+ const result={asOf:unique.at(-1)?.date||null,price:unique.at(-1)?.close||null,bars:unique.length,status:'insufficient',supports:[],resistances:[],warning:''};
+ if(unique.length<10){result.warning=`至少需要10個有效交易日（目前${unique.length}日），暫不計算。`;return result}
+ for(let i=Math.max(1,unique.length-60);i<unique.length;i++){
+  const a=unique[i-1].close,b=unique[i].close;
+  if(Math.abs(b/a-1)>0.15){result.status='invalid';result.warning='近60筆資料出現超過15%的單日價格跳動，可能涉及除權息、減資或來源異常，暫停計算。';return result}
+ }
+ const prior=unique.slice(0,-1),price=result.price,candidates=[];
+ function put(value,label){if(!Number.isFinite(value)||value<=0)return;const kind=value<price?'S':value>price?'R':null;if(kind)candidates.push({value,label,kind})}
+ for(const n of [5,10,20,40,60]){
+  if(prior.length<n)continue;
+  const sub=prior.slice(-n);put(Math.min(...sub.map(b=>b.low)),`前${n}日低點`);put(Math.max(...sub.map(b=>b.high)),`前${n}日高點`)
+ }
+ for(const n of [5,10,20,60]){
+  if(prior.length<n)continue;put(prior.slice(-n).reduce((s,b)=>s+b.close,0)/n,`MA${n}`)
+ }
+ const pivots=prior.slice(-65);
+ for(let i=2;i<pivots.length-2;i++){
+  const b=pivots[i],group=pivots.slice(i-2,i+3);
+  if(group.every(x=>b.low<=x.low)&&group.some(x=>b.low<x.low))put(b.low,`波段低點 ${b.date}`);
+  if(group.every(x=>b.high>=x.high)&&group.some(x=>b.high>x.high))put(b.high,`波段高點 ${b.date}`)
+ }
+ function clusters(kind){
+  const arr=candidates.filter(x=>x.kind===kind).sort((a,b)=>a.value-b.value),groups=[];
+  for(const v of arr){
+   let g=groups.find(g=>Math.abs(v.value-g.center)/g.center<=0.008);
+   if(g){g.items.push(v);g.center=g.items.reduce((s,x)=>s+x.value,0)/g.items.length}
+   else groups.push({center:v.value,items:[v]})
+  }
+  return groups.map(g=>({price:Math.round(g.center*100)/100,reason:[...new Set(g.items.map(x=>x.label))].slice(0,4).join('、'),factors:new Set(g.items.map(x=>x.label)).size,distancePct:Math.round((g.center/price-1)*10000)/100}))
+   .sort((a,b)=>kind==='S'?b.price-a.price:a.price-b.price).slice(0,3)
+ }
+ result.supports=clusters('S');result.resistances=clusters('R');result.status=unique.length>=60?'ready':'provisional';
+ result.warning=unique.length<60?`只有${unique.length}個有效交易日，以下屬暫定攻防價，60日資料補齊前不作完整波段判斷。`:'歷史價位僅供觀察，突破與跌破需要收盤及量價確認。';return result
+}
+function renderLevels(result){
+ if(result.status==='invalid'||result.status==='insufficient')return `<div class="quality">${esc(result.warning)}</div>`;
+ const render=(levels,label,tone)=>`<div class="levelhead ${tone}">${label}</div><div class="levelgrid">${[0,1,2].map(i=>{const x=levels[i];return `<div class="levelbox"><small>${label[0]}${i+1} · ${x?Math.abs(x.distancePct).toFixed(2)+'% 距現價':'暫無可靠價位'}</small><strong class="${tone}">${x?fmt(x.price):'—'}</strong><small>${x?esc(x.reason):'歷史條件不足，不強行預估'}</small></div>`}).join('')}</div>`;
+ return `<div class="quality">${esc(result.warning)}</div>${render(result.resistances,'壓力 R','bad')}${render(result.supports,'支撐 S','good')}<p class="note">分析基準：${esc(result.asOf)} 收盤 ${fmt(result.price)} 元。價位非保證，突破或跌破後需重新計算。</p>`
+}
+function draw(rows){
+ const c=$('chart'),ctx=c.getContext('2d'),w=c.clientWidth,h=260,dpr=window.devicePixelRatio||1;
+ c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ if(rows.length<2){$('chartNote').textContent='歷史資料不足，暫不繪製走勢。';return}
+ const items=rows.slice(-90),series=[{color:'#7bb9ff',values:items.map(x=>x.close)},{color:'#f6bc6a',values:items.map((x,i)=>ma(items,20,i))},{color:'#57cbac',values:items.map((x,i)=>ma(items,60,i))}];
+ const all=series.flatMap(s=>s.values).filter(Number.isFinite);let lo=Math.min(...all),hi=Math.max(...all);
+ if(lo===hi){lo*=.99;hi*=1.01}const x=i=>20+i*(w-40)/Math.max(1,items.length-1),y=v=>12+(hi-v)*(h-40)/(hi-lo);
+ ctx.strokeStyle='#29405e';ctx.lineWidth=1;for(let i=0;i<4;i++){const yy=12+i*(h-40)/3;ctx.beginPath();ctx.moveTo(20,yy);ctx.lineTo(w-20,yy);ctx.stroke()}
+ for(const s of series){ctx.strokeStyle=s.color;ctx.lineWidth=2;ctx.beginPath();let started=false;s.values.forEach((v,i)=>{if(!Number.isFinite(v)){started=false;return}if(!started){ctx.moveTo(x(i),y(v));started=true}else ctx.lineTo(x(i),y(v))});ctx.stroke()}
+ $('chartNote').textContent=`顯示 ${items.length} 個交易日（${items[0].date} 至 ${items.at(-1).date}），價格可能未還原。`
+}
+async function load(){
+ code=$('ticker').value.trim()||code;
+ if(!/^\d{4}$/.test(code)){$('message').textContent='請輸入四位股票代碼';return}
+ history.replaceState(null,'','?stock='+code);$('message').textContent='讀取個股歷史與最新行情中…';
+ try{
+  const [a,b]=await Promise.all([fetch('data/latest.json?t='+Date.now(),{cache:'no-store'}),fetch('data/history.json?t='+Date.now(),{cache:'no-store'})]);
+  if(!a.ok||!b.ok)throw Error('GitHub 尚未提供完整資料');
+  const latest=await a.json(),his=await b.json(),matches=Object.values(his.stocks||{}).filter(r=>r.id===code),live=(latest.stocks||[]).filter(r=>r.id===code);
+  const r=matches.find(x=>x.market==='上市')||matches[0],s=live.find(x=>x.market===r?.market)||live[0];
+  if(!r&&!s)throw Error('查無此股票代碼，請確認資料涵蓋範圍');
+  const bars=[...(r?.bars||[])].filter(x=>Number.isFinite(x.close)&&x.close>0).sort((a,b)=>a.date.localeCompare(b.date));
+  const last=bars.at(-1);$('heading').textContent=`${s?.name||r.name} ${code}`;
+  $('sub').textContent=`${s?.market||r.market} · 歷史日K：${last?.date||'未知'} · 最新摘要：${s?.date||'未知'}`;
+  $('price').textContent=fmt(s?.close??last?.close);$('days').textContent=bars.length+' / 60';$('score').textContent=s?.score==null?'未建立':s.score+'/100';$('badge').textContent=s?.status||'資料檢查中';$('ticker').value=code;
+  const m5=bars.length>=5?ma(bars,5,bars.length-1):null,m10=bars.length>=10?ma(bars,10,bars.length-1):null,m20=bars.length>=20?ma(bars,20,bars.length-1):null,m60=bars.length>=60?ma(bars,60,bars.length-1):null;
+  $('tech').innerHTML=pair('MA5 / MA10',fmt(m5)+' / '+fmt(m10))+pair('MA20 / MA60',fmt(m20)+' / '+fmt(m60))+pair('RSI14',fmt(s?.rsi14))+pair('MACD 柱狀值',fmt(s?.macdHist))+pair('量比（近20日）',fmt(s?.volumeRatio));
+  const quality=(!last||!s||last.date!==s.date||Math.abs(last.close/s.close-1)>0.001)?'最新摘要與歷史日K日期／價格不一致，暫停攻防價位計算。':'';
+  const levels=quality?{status:'invalid',warning:quality}:calculatePriceLevels(bars);
+  $('levels').innerHTML=renderLevels(levels);
+  $('conclusion').textContent=quality?'資料未同步：'+quality:levels.status==='invalid'?'資料異常：'+levels.warning:levels.status==='insufficient'?'歷史資料不足：'+levels.warning:levels.status==='provisional'?'初步攻防價已產生，但歷史未滿60日；暫停完整趨勢評分與交易建議。':'已建立三道攻防價候選（可能不足三道）。仍未接入籌碼與回測，暫不發布 Buy 訊號。';
+  $('message').textContent='系統資料更新：'+(latest.generatedAt||'未知');draw(bars)
+ }catch(e){$('message').textContent='讀取失敗：'+e.message;$('levels').innerHTML='';$('conclusion').textContent='未取得可靠資料，暫停分析。'}
+}
 $('go').onclick=load;$('refresh').onclick=load;$('ticker').onkeydown=e=>{if(e.key==='Enter')load()};$('ticker').value=code;load();
 </script></body></html>
