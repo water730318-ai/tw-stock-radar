@@ -1,11 +1,11 @@
 {
-  "nextDate": "2026-11-24",
-  "rangeStart": "2026-07-02",
-  "rangeEnd": "2026-11-23",
-  "lastAttempt": "2026-11-24T10:58:00+08:00",
+  "nextDate": "2026-11-25",
+  "rangeStart": "2026-07-03",
+  "rangeEnd": "2026-11-24",
+  "lastAttempt": "2026-11-25T11:00:52+08:00",
   "acceptedThisRun": {
     "上市": 1099,
-    "上櫃": 873
+    "上櫃": 889
   },
   "errors": []
 }
